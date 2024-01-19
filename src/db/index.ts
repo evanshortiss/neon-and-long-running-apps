@@ -3,7 +3,7 @@ import { Pool, Client } from "pg";
 import { log } from '../log'
 import { DATABASE_URL as connectionString, PG_POOL_ENABLED, PG_POOL_MAX_CONNS } from '../config'
 
-let db: NodePgDatabase|undefined
+let db: Promise<NodePgDatabase>|undefined
 
 export default async function getDatabase () {
   // Return an existing instance if available
@@ -46,36 +46,48 @@ export default async function getDatabase () {
     pool.on('release', () => log.trace(`pg:pool released a client for fututre queries. waiting count: ${pool.waitingCount}`))
     pool.on('remove', () =>  log.debug(`pg:pool removed a connection. open connection count is: ${pool.totalCount}`))
 
-    db = drizzle(pool);
+    db = Promise.resolve(drizzle(pool));
   } else {
-    /**
-     * This un-pooled flow reuses the same connection for each query. This
-     * could result in a performance bottleneck if you're not sclaing your
-     * Node.js application across many lambdas or processes
-     */
-    log.info('establishing database connection via pg.Client')
-    const client = new Client({ connectionString })
+    // Need to immediately wrap this in a promise so requests arriving at the
+    // same time don't result in many clients being opened
+    db = new Promise(async (resolve, reject) => {
+      /**
+       * This un-pooled flow reuses the same connection for each query. This
+       * could result in a performance bottleneck if you're not sclaing your
+       * Node.js application across many lambdas or processes
+       */
+      log.info('establishing database connection via pg.Client')
+      const client = new Client({ connectionString })
+    
+      try {
+        await client.connect()
+        
+        // This callback is triggered when Neon auto-suspend kicks in, since pg
+        // sees that the connection to the database was lost. Log the error, and
+        // cleanup the client, and unassign the db variable to force a subsequent
+        // query to re-open a connection to your Neon Postgres database.
+        client.once('error', (e) => {
+          log.error('pg:client error:')
+          log.error(e)
+    
+          // Force a new client to be recreated for future queries after this error
+          db = undefined
+    
+          client.end().catch((e) => {
+            log.error('pg:client error running client.end()')
+            log.error(e)
+          })
+        })
+    
+        db = Promise.resolve(drizzle(client))
   
-    await client.connect()
-
-    // This callback is triggered when Neon auto-suspend kicks in, since pg
-    // sees that the connection to the database was lost. Log the error, and
-    // cleanup the client, and unassign the db variable to force a subsequent
-    // query to re-open a connection to your Neon Postgres database.
-    client.once('error', (e) => {
-      log.error('pg:client error:')
-      log.error(e)
-
-      // Force a new client to be recreated for future queries after this error
-      db = undefined
-
-      client.end().catch((e) => {
-        log.error('pg:client error running client.end()')
+        resolve(db)
+      } catch (e) {
+        log.error('pg:client error connecting to database')
         log.error(e)
-      })
+      }
+  
     })
-
-    db = drizzle(client)
   }
 
   return db

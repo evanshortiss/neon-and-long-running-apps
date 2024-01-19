@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Serverfull Scale to Zero</title>
+  </head>
+  <body class="bg-[#1A1A1A] p-10">
+    <p class="text-white text-center pb-7 text-xl">Click an element to delete it from the database.</p>
+    <main class="min-h-screen flex items-center justify-center">
+      <ul class="grid grid-cols-2 md:grid-cols-6 gap-5">
+        {{#each elements}}
+          <li hx-delete="/elements/{{this.atomicNumber}}" hx-target="body" class="relative flex flex-col text-center p-5 rounded-md bg-[#00E699] transition-colors hover:bg-red-500 text-[black]">
+            <p class="absolute top-2 left-2 text-sm">
+              {{this.atomicNumber}}
+            </p>
+            <h2 class="text-2xl font-medium">{{this.symbol}}</h2>
+            <p class="text-base">{{this.name}}</p>
+          </li>
+        {{/each}}
+      </ul>
+    </main>
+
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </body>
+</html>

@@ -10,11 +10,6 @@ export default async function getDatabase () {
   if (db) return db
 
   if (PG_POOL_ENABLED) {
-    /**
-     * Use a connection pool. Doing so enables this single Node.js instance
-     * to issue multiple concurrent queries to your Neon Postgres database
-     * and enables reusing connections to avoid the over
-     */
     log.info('establishing database connection via pg.Pool')
     const pool = new Pool({
       connectionString,
@@ -48,8 +43,11 @@ export default async function getDatabase () {
 
     db = Promise.resolve(drizzle(pool));
   } else {
-    // Need to immediately wrap this in a promise so requests arriving at the
-    // same time don't result in many clients being opened
+    /**
+     * We need to immediately wrap this code in a promise so requests arriving
+     * at the same time will end up using the same client, instead of opening
+     * too many instances of pg.Client.
+     */
     db = new Promise(async (resolve, reject) => {
       /**
        * This un-pooled flow reuses the same connection for each query. This
@@ -60,8 +58,6 @@ export default async function getDatabase () {
       const client = new Client({ connectionString })
     
       try {
-        await client.connect()
-        
         // This callback is triggered when Neon auto-suspend kicks in, since pg
         // sees that the connection to the database was lost. Log the error, and
         // cleanup the client, and unassign the db variable to force a subsequent
@@ -78,15 +74,15 @@ export default async function getDatabase () {
             log.error(e)
           })
         })
+
+        await client.connect()
     
         db = Promise.resolve(drizzle(client))
   
         resolve(db)
       } catch (e) {
-        log.error('pg:client error connecting to database')
-        log.error(e)
+        reject(e)
       }
-  
     })
   }
 

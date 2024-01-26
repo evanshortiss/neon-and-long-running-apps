@@ -10,8 +10,8 @@ feature with a long-running Node.js application. The techniques used can be appl
 
 ### Initial Setup
 
-1. Create a project at https://neon.tech/.
-1. Copy `.env.example` to a file named `.env`, and replace `DATABASE_URL` your [connection string](https://neon.tech/docs/connect/connect-from-any-app).
+1. Create a project at https://console.neon.tech/.
+1. Copy `.env.example` to a file named `.env`, and replace `DATABASE_URL` your database's [connection string](https://neon.tech/docs/connect/connect-from-any-app).
 1. Initialise the database with a schema and some data:
     ```bash
     npm i

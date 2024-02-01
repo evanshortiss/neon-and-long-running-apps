@@ -20,7 +20,7 @@ export default async function getDatabase() {
 
       // Close any db connection that is idle for more than this number of
       // milliseconds. If this number is less than the Neon auto-suspend value
-      // then no error will be logged when Neon auto-suspend kicks in, since
+      // then no errors will be thrown when Neon auto-suspend kicks in, since
       // the pool will have already removed idle database connections
       idleTimeoutMillis: 30 * 1000,
 

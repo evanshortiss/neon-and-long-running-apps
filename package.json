@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "nodemon -r dotenv/config src/index.ts | pino-pretty -t",
+    "dev": "NODE_ENV=development nodemon -r dotenv/config src/index.ts | pino-pretty -t",
     "drizzle:generate": "drizzle-kit generate:pg",
     "drizzle:push": "drizzle-kit push:pg",
     "seed": "ts-node -r dotenv/config seed.ts",
